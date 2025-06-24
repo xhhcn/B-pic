@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B-Pic - 快速图片托管</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <p>拖拽图片或点击上传，支持 JPG、PNG、SVG 等格式</p>
+        </header>
+
+        <main class="main">
+            <!-- 上传区域 -->
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-content">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h3>拖拽图片到此处</h3>
+                    <p>或</p>
+                    <button class="upload-btn" id="uploadBtn">
+                        <i class="fas fa-plus"></i> 选择文件
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+                    <div class="upload-info">
+                        <small>支持格式：JPG, PNG, GIF, BMP, WEBP, SVG, TIFF, ICO</small>
+                        <small>最大文件大小：10MB</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上传进度 -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">上传中...</div>
+            </div>
+
+            <!-- 结果区域 -->
+            <div class="results-container" id="resultsContainer" style="display: none;">
+                <h3><i class="fas fa-check-circle"></i> 上传成功</h3>
+                <div class="image-preview" id="imagePreview"></div>
+                <div class="links-container" id="linksContainer"></div>
+            </div>
+        </main>
+
+        <!-- 上传限制信息显示区域 -->
+        <div class="upload-limit-info" id="uploadLimitInfo" style="display: none;">
+            <p id="uploadLimitText"></p>
+        </div>
+
+        <footer class="footer">
+            <p>Powered by @xhh1128</p>
+        </footer>
+    </div>
+
+    <!-- Toast通知 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 删除时长设置弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-clock"></i> 设置图片保存时长</h3>
+                <button class="modal-close" id="modalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">请选择图片的自动删除时间，到期后图片将被自动删除</p>
+                <div class="custom-select-container">
+                    <div class="custom-select" id="customSelect">
+                        <div class="select-trigger" id="selectTrigger">
+                            <i class="fas fa-clock select-icon"></i>
+                            <span class="select-text">5分钟</span>
+                            <span class="select-description">临时分享</span>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                        <div class="select-options" id="selectOptions">
+                            <div class="select-option active" data-value="5" data-icon="fas fa-clock">
+                                <i class="fas fa-clock option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">5分钟</span>
+                                    <span class="option-description">临时分享</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="10" data-icon="fas fa-clock">
+                                <i class="fas fa-clock option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">10分钟</span>
+                                    <span class="option-description">短期分享</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="60" data-icon="fas fa-hourglass-half">
+                                <i class="fas fa-hourglass-half option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">1小时</span>
+                                    <span class="option-description">中期分享</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="1440" data-icon="fas fa-sun">
+                                <i class="fas fa-sun option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">1天</span>
+                                    <span class="option-description">日常分享</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="2880" data-icon="fas fa-calendar-day">
+                                <i class="fas fa-calendar-day option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">2天</span>
+                                    <span class="option-description">短期存储</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="10080" data-icon="fas fa-calendar-week">
+                                <i class="fas fa-calendar-week option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">1周</span>
+                                    <span class="option-description">周期分享</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="43200" data-icon="fas fa-calendar-alt">
+                                <i class="fas fa-calendar-alt option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">1个月</span>
+                                    <span class="option-description">长期存储</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                            <div class="select-option" data-value="0" data-icon="fas fa-infinity">
+                                <i class="fas fa-infinity option-icon"></i>
+                                <div class="option-content">
+                                    <span class="option-text">永不删除</span>
+                                    <span class="option-description">永久保存</span>
+                                </div>
+                                <i class="fas fa-check option-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modalCancel">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button class="btn btn-primary" id="modalConfirm">
+                    <i class="fas fa-upload"></i> 确认上传
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
