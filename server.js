@@ -25,10 +25,11 @@ const ALLOW_PERMANENT_STORAGE = process.env.ALLOW_PERMANENT_STORAGE === 'true'; 
 // 安全配置
 const UPLOAD_LIMIT_PER_DAY = 100; // 未认证用户每天上传限制
 
-// 安全中间件
+// 安全中间件 - 针对图床应用优化
 app.use(helmet({
     contentSecurityPolicy: false, // 暂时禁用CSP以支持内联样式
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false // 禁用CORP以允许图片跨域显示
 }));
 
 // CORS配置（简化版，适合图床应用）
@@ -48,41 +49,17 @@ function secureKeyGenerator(req) {
     return getClientIP(req);
 }
 
-// 通用速率限制
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15分钟
-    max: 100, // 限制每个IP 15分钟内最多100个请求
-    message: { error: '请求过于频繁，请稍后再试' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: secureKeyGenerator,
-    skip: (req) => {
-        // 跳过健康检查等系统请求
-        return req.path === '/health' || req.path === '/favicon.ico';
-    }
-});
-
-// 登录速率限制
+// 仅保留必要的登录限制，防止暴力破解
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15分钟
-    max: 5, // 限制每个IP 15分钟内最多5次登录尝试
+    max: 20, // 允许更多登录尝试
     message: { error: '登录尝试过于频繁，请15分钟后再试' },
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: secureKeyGenerator,
 });
 
-// 上传速率限制（认证用户）
-const uploadLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1分钟
-    max: 10, // 限制每个IP每分钟最多10次上传
-    message: { error: '上传过于频繁，请稍后再试' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: secureKeyGenerator,
-});
-
-app.use(generalLimiter);
+// 移除通用限制和上传限制，提升用户体验
 
 // Session配置
 app.use(session({
@@ -119,6 +96,11 @@ function requireAuth(req, res, next) {
 app.use((req, res, next) => {
     // 登录页面相关的资源不需要认证
     if (req.path === '/login.html' || req.path === '/background.svg') {
+        return next();
+    }
+    
+    // 跳过 /uploads/ 路径，这些由专门的路由处理
+    if (req.path.startsWith('/uploads/')) {
         return next();
     }
     
@@ -221,21 +203,97 @@ db.serialize(() => {
 
 // 工具函数
 
-// 获取客户端真实IP（安全版本）
+// 获取客户端真实IP（支持反向代理）
 function getClientIP(req) {
-    // 在生产环境中，可以配置信任的代理IP列表
-    // 这里为了安全，优先使用连接的真实IP
+    // 1. 优先检查 X-Forwarded-For 头（反向代理环境）
+    const xForwardedFor = req.get('x-forwarded-for');
+    if (xForwardedFor) {
+        // X-Forwarded-For 可能包含多个IP，取第一个（最原始的客户端IP）
+        const ips = xForwardedFor.split(',').map(ip => ip.trim());
+        const clientIP = ips[0];
+        if (clientIP && clientIP !== 'unknown') {
+            return clientIP.replace(/^::ffff:/, ''); // 移除IPv6映射前缀
+        }
+    }
+    
+    // 2. 检查其他常见的代理头
+    const xRealIP = req.get('x-real-ip');
+    if (xRealIP && xRealIP !== 'unknown') {
+        return xRealIP.replace(/^::ffff:/, '');
+    }
+    
+    const xClientIP = req.get('x-client-ip');
+    if (xClientIP && xClientIP !== 'unknown') {
+        return xClientIP.replace(/^::ffff:/, '');
+    }
+    
+    // 3. 使用Express提供的IP（已经处理了trust proxy）
+    if (req.ip && req.ip !== '::1' && req.ip !== '127.0.0.1') {
+        return req.ip.replace(/^::ffff:/, '');
+    }
+    
+    // 4. 最后使用直接连接的IP
     const directIP = req.connection.remoteAddress || 
                      req.socket.remoteAddress ||
                      (req.connection.socket ? req.connection.socket.remoteAddress : null);
     
     if (directIP) {
-        return directIP.replace(/^::ffff:/, ''); // 移除IPv6映射前缀
+        return directIP.replace(/^::ffff:/, '');
     }
     
-    // 如果在可信代理后面，才使用 X-Forwarded-For
-    // 注意：在生产环境中应该验证代理来源
-    return req.ip || '127.0.0.1';
+    // 5. 默认值
+    return '127.0.0.1';
+}
+
+// 智能协议检测函数
+function getProtocolAndHost(req) {
+    // 获取主机名
+    const host = req.get('x-forwarded-host') || req.get('host') || '';
+    
+    // 1. 检查 X-Forwarded-Proto 头（反向代理设置）
+    let protocol = req.get('x-forwarded-proto');
+    
+    // 2. 检查 X-Forwarded-Ssl 头
+    if (!protocol && req.get('x-forwarded-ssl') === 'on') {
+        protocol = 'https';
+    }
+    
+    // 3. 检查 X-Forwarded-Port 头
+    if (!protocol) {
+        const forwardedPort = req.get('x-forwarded-port');
+        if (forwardedPort === '443') {
+            protocol = 'https';
+        } else if (forwardedPort === '80') {
+            protocol = 'http';
+        }
+    }
+    
+    // 4. 检查 Host 头中是否包含端口信息
+    if (!protocol) {
+        if (host.includes(':443')) {
+            protocol = 'https';
+        } else if (host.includes(':80')) {
+            protocol = 'http';
+        }
+    }
+    
+    // 5. 基于域名模式智能判断（优先级高于req.protocol）
+    if (!protocol) {
+        // 如果是常见的HTTPS域名模式，默认使用HTTPS
+        if (host.includes('.eu.org') || host.includes('.com') || host.includes('.net') || 
+            host.includes('.org') || host.includes('.io') || host.includes('.dev') ||
+            host.includes('.app') || host.includes('.me') || host.includes('.co') ||
+            (!host.includes('localhost') && !host.includes('127.0.0.1') && !host.match(/^\d+\.\d+\.\d+\.\d+/) && !host.includes(':8'))) {
+            protocol = 'https';
+        }
+    }
+    
+    // 6. 检查请求的协议（最后的备选方案）
+    if (!protocol) {
+        protocol = req.protocol || 'http';
+    }
+    
+    return { protocol, host };
 }
 
 // 输入验证错误处理中间件
@@ -367,7 +425,7 @@ const storage = multer.diskStorage({
     },
     filename: function (req, file, cb) {
         const uniqueId = uuidv4();
-        const ext = path.extname(file.originalname);
+        const ext = path.extname(file.originalname).toLowerCase(); // 统一转换为小写
         cb(null, uniqueId + ext);
     }
 });
@@ -514,7 +572,6 @@ app.get('/', requireAuth, (req, res) => {
 // 上传图片（需要认证）
 app.post('/api/upload', 
     requireAuth, 
-    uploadLimiter,
     [
         body('deleteTime')
             .optional()
@@ -594,7 +651,9 @@ app.post('/api/upload',
         stmt.run(imageId, file.filename, file.originalname, file.mimetype, file.size, deleteTime, autoDelete);
         stmt.finalize();
 
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        // 智能协议检测 - 支持反向代理
+        const { protocol, host } = getProtocolAndHost(req);
+        const baseUrl = `${protocol}://${host}`;
         
         res.json({
             success: true,
@@ -642,7 +701,9 @@ app.get('/api/image/:id',
                 return res.status(404).json({ error: '图片不存在' });
             }
             
-            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            // 智能协议检测 - 支持反向代理
+            const { protocol, host } = getProtocolAndHost(req);
+            const baseUrl = `${protocol}://${host}`;
             
             // 格式化删除时间信息
             let deleteInfo = '永不删除';

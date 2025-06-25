@@ -35,6 +35,9 @@
 - ⏰ **自动删除功能** - 可设置图片保存时长，支持5分钟到永久保存
 - 🔐 **密码保护** - 可选的密码认证功能，保护私人图床
 - 📱 **响应式设计** - 适配桌面和移动端
+- 🌐 **智能协议检测** - 自动识别HTTPS环境，支持反向代理
+- 🚀 **优化用户体验** - 移除频率限制，确保流畅使用
+- 🔧 **文件名优化** - 自动转换文件扩展名为小写
 - 🐳 **Docker部署** - 一键部署，开箱即用
 
 ## 🚀 快速部署
@@ -66,8 +69,14 @@
 
 ### 单独 Docker 部署
 
+**⚠️ 重要：使用数据持久化前，请先创建必要的目录和文件**
+
 ```bash
-# 启用认证的部署
+# 1. 创建数据目录和文件（首次部署必须执行）
+mkdir -p uploads
+touch database.db
+
+# 2. 启用认证的部署
 docker run -d \
   --name b-pic \
   -p 8007:8007 \
@@ -78,7 +87,7 @@ docker run -d \
   -v ./database.db:/app/database.db \
   xhh1128/b-pic
 
-# 公开访问（无认证）
+# 3. 公开访问（无认证）
 docker run -d \
   --name b-pic \
   -p 8007:8007 \
@@ -86,6 +95,15 @@ docker run -d \
   -v ./uploads:/app/uploads \
   -v ./database.db:/app/database.db \
   xhh1128/b-pic
+```
+
+**🚀 快速启动（无数据持久化）**
+
+如果您不需要数据持久化，可以直接运行：
+
+```bash
+# 简单启动（数据不会保存）
+docker run -d --name b-pic -p 8007:8007 -e ENABLE_AUTH=false xhh1128/b-pic
 ```
 
 ## ⚙️ 环境配置
