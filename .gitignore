@@ -78,3 +78,5 @@ Thumbs.db
 # 缓存文件
 .cache/
 .parcel-cache/
+
+.gitignore
