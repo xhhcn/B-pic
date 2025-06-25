@@ -12,7 +12,7 @@ const helmet = require('helmet');
 const { body, param, validationResult } = require('express-validator');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8007;
 
 // 认证配置
 const ENABLE_AUTH = process.env.ENABLE_AUTH === 'true';
@@ -546,7 +546,7 @@ app.post('/api/upload',
                     console.error('检查IP上传限制失败:', limitError);
                     return res.status(500).json({ error: '服务器内部错误' });
                 }
-            }
+        }
 
         const file = req.file;
         const imageId = path.parse(file.filename).name;

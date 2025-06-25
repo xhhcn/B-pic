@@ -20,7 +20,7 @@ fi
 
 # 启动服务器
 echo "🌟 正在启动服务器..."
-echo "📡 服务器地址: http://localhost:3000"
+echo "📡 服务器地址: http://localhost:8007"
 echo "📝 按 Ctrl+C 停止服务器"
 echo ""
 echo "==================================="

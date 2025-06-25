@@ -6,10 +6,10 @@ services:
     container_name: simple-image-host
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8007:8007"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=8007
       - ENABLE_AUTH=true
       - AUTH_PASSWORD=your-secure-password-change-me
       - SESSION_SECRET=your-random-session-secret-change-me
@@ -18,7 +18,7 @@ services:
       - ./uploads:/app/uploads
       - ./database.db:/app/database.db
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/auth/status"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8007/api/auth/status"]
       interval: 30s
       timeout: 10s
       retries: 3
