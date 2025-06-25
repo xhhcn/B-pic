@@ -2,6 +2,10 @@
 
 <div align="center">
 
+<img src="public/logo.svg" alt="B-Pic Logo" width="120" height="120" style="border-radius: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+
+<br><br>
+
 🖼️ **一个简约扁平化风格的图片托管服务** 🖼️
 
 *支持拖拽上传和多种链接格式生成*
@@ -189,6 +193,8 @@ services:
 **⭐ 如果这个项目对您有帮助，请给它一个星标！**
 
 <br>
+
+<img src="public/logo.svg" alt="B-Pic Logo" width="48" height="48" style="border-radius: 12px;">
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
