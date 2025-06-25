@@ -63,7 +63,7 @@
    ```
 
 3. **启动服务**
-   ```bash
+```bash
    docker-compose up -d
    ```
 

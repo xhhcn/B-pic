@@ -3,7 +3,7 @@ version: '3.8'
 services:
   image-host:
     build: .
-    container_name: simple-image-host
+    container_name: b-pic
     restart: unless-stopped
     ports:
       - "8007:8007"
@@ -11,7 +11,7 @@ services:
       - NODE_ENV=production
       - PORT=8007
       - ENABLE_AUTH=true
-      - AUTH_PASSWORD=your-secure-password-change-me
+      - AUTH_PASSWORD=your-password
       - SESSION_SECRET=your-random-session-secret-change-me
       - ALLOW_PERMANENT_STORAGE=false
     volumes:

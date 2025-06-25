@@ -596,7 +596,8 @@ function getDeleteTimeText(minutes) {
     if (minutes < 1440) return `${Math.floor(minutes / 60)}小时`;
     if (minutes < 10080) return `${Math.floor(minutes / 1440)}天`;
     if (minutes < 43200) return `${Math.floor(minutes / 10080)}周`;
-    return `${Math.floor(minutes / 43200)}月`;
+    if (minutes < 525600) return `${Math.floor(minutes / 43200)}个月`;
+    return `${Math.floor(minutes / 525600)}年`;
 }
 
 // 自定义下拉框功能
