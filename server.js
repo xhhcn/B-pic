@@ -627,8 +627,13 @@ app.post('/api/upload',
             }
         }
 
-        // 计算删除时间
-        const deleteTimeMinutes = parseInt(req.body.deleteTime) || 5;
+        // 计算删除时间 - 修复永不删除的逻辑错误
+        let deleteTimeMinutes = parseInt(req.body.deleteTime);
+        // 如果解析失败或者值为NaN，默认设为5分钟，但要保留0值（永不删除）
+        if (isNaN(deleteTimeMinutes) || deleteTimeMinutes < 0) {
+            deleteTimeMinutes = 5;
+        }
+        
         let deleteTime = null;
         let autoDelete = 1;
         
