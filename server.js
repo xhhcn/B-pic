@@ -94,13 +94,13 @@ function requireAuth(req, res, next) {
 
 // 静态文件中间件，对需要认证的文件进行保护
 app.use((req, res, next) => {
-    // 登录页面相关的资源不需要认证
-    if (req.path === '/login.html' || req.path === '/background.svg') {
+    // 最优先：跳过 /uploads/ 路径，这些图片直链无需认证
+    if (req.path.startsWith('/uploads/')) {
         return next();
     }
     
-    // 跳过 /uploads/ 路径，这些由专门的路由处理
-    if (req.path.startsWith('/uploads/')) {
+    // 登录页面相关的资源不需要认证
+    if (req.path === '/login.html' || req.path === '/background.svg') {
         return next();
     }
     
@@ -110,7 +110,8 @@ app.use((req, res, next) => {
     }
     
     // 其他静态资源需要认证保护
-    if (req.path.match(/\.(css|js|html|ico|png|jpg|jpeg|gif)$/) && req.path !== '/background.svg') {
+    // 注意：uploads路径已经在最开始被跳过，所以这里不会影响图片直链
+    if (req.path.match(/\.(css|js|html|ico|png|jpg|jpeg|gif|webp|svg|bmp|tiff)$/) && req.path !== '/background.svg') {
         return requireAuth(req, res, next);
     }
     
@@ -674,9 +675,8 @@ app.post('/api/upload',
     }
 });
 
-// 获取图片信息（需要认证）
+// 获取图片信息（无需认证 - 图片信息应该可以被任意IP访问）
 app.get('/api/image/:id', 
-    requireAuth,
     [
         param('id')
             .isLength({ min: 1, max: 64 })
@@ -744,14 +744,13 @@ app.get('/api/image/:id',
     }
 );
 
-// 图片信息页面（需要认证）
-app.get('/image/:id', requireAuth, (req, res) => {
+// 图片信息页面（无需认证 - 图片应该可以被任意IP访问）
+app.get('/image/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'image.html'));
 });
 
-// 提供上传文件的访问（需要认证）
+// 提供上传文件的访问（无需认证 - 图片直链应该可以被任意IP访问）
 app.get('/uploads/:filename', 
-    requireAuth,
     [
         param('filename')
             .isLength({ min: 1, max: 128 })
